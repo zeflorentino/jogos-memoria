@@ -1,46 +1,97 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quiz e Gráfico de Jogos</title>
+    <title>Desafio Google - Versão HTML</title>
     
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- React Libraries -->
-    <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
-    <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
-    
-    <!-- Babel for JSX Transpilation -->
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-    <!-- Recharts Library -->
-    <script src="https://unpkg.com/recharts/umd/Recharts.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;700&display=swap" rel="stylesheet">
 
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@500;700&display=swap');
+        /* Estilos customizados */
         body {
-            margin: 0;
             font-family: 'Montserrat', sans-serif;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
+            background-color: #1A1B29;
         }
-        .font-gotham-like { font-family: 'Montserrat', sans-serif; }
+
         @keyframes fade-in {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        .animate-fade-in { animation: fade-in 0.5s ease-out forwards; }
+
+        .animate-fade-in {
+            animation: fade-in 0.5s ease-out forwards;
+        }
+        
+        /* Oculta as visualizações por padrão */
+        #puzzle-view, #quiz-view, #result-view {
+            display: none;
+        }
     </style>
 </head>
-<body>
-    <div id="root"></div>
+<body class="h-screen w-screen flex flex-col items-center justify-center text-white overflow-hidden">
 
-    <script type="text/babel">
-        window.addEventListener('load', () => {
-            const { useState, useEffect, useRef } = React;
-            
+    <!-- Visualização do Quebra-Cabeça -->
+    <div id="puzzle-view" class="w-full max-w-3xl mx-auto text-center flex flex-col items-center justify-center">
+        <div id="puzzle-container" class="grid grid-cols-3 gap-1 mx-auto w-full">
+            <!-- As peças do quebra-cabeça serão renderizadas aqui pelo JavaScript -->
+        </div>
+        <button id="go-to-quiz-btn" style="background-color: #34D399;" class="mt-12 text-white font-semibold py-3 px-8 rounded-lg transition-all duration-300 shadow-lg hover:brightness-90">
+            Ir para o Quiz
+        </button>
+    </div>
+
+    <!-- Visualização do Quiz -->
+    <div id="quiz-view" class="w-full max-w-xl mx-auto text-center flex flex-col items-center justify-center">
+        <h1 class="text-3xl md:text-5xl font-bold text-white mb-4">
+            Qual o mais buscado?
+        </h1>
+        <p class="text-gray-300 mb-12 text-xl">
+            Jogos para exercitar o cérebro selecionados, em 2025
+        </p>
+        <div id="quiz-options-container" class="flex flex-col items-center gap-5 w-full">
+            <!-- As opções do quiz serão renderizadas aqui pelo JavaScript -->
+        </div>
+    </div>
+    
+    <!-- Visualização dos Resultados (Gráfico) -->
+    <div id="result-view" class="w-full h-full max-h-[90vh] max-w-7xl flex items-center justify-center p-4">
+        <div style="width: 100%; height: 100%; background-color: #0C0C2B; padding: clamp(1rem, 4vw, 60px) clamp(1rem, 4vw, 70px); display: flex; flex-direction: column; border-radius: 1rem;">
+            <div class="flex justify-between items-start gap-4">
+                <div>
+                    <h1 id="chart-title" style="font-size: clamp(1.5rem, 4vw, 3rem); font-weight: 700; line-height: 1.1; color: #FFFFFF;">
+                        <!-- O título do gráfico será preenchido pelo JavaScript -->
+                    </h1>
+                    <h2 style="font-size: clamp(1rem, 2.5vw, 1.5rem); font-weight: 500; margin-top: 8px; color: #FFFFFF;">
+                        Interesse de busca por jogos para o cérebro no Google
+                    </h2>
+                </div>
+                <img src="https://public.flourish.studio/uploads/2246263/e793fc71-9a78-43b1-9477-b418ddd1a38a.png" alt="Google Logo" style="height: clamp(24px, 5vw, 48px);">
+            </div>
+            <hr class="my-6 border-t-2" style="border-color: #FFFFFF;">
+            <div class="flex-grow relative">
+                <canvas id="trends-chart"></canvas>
+            </div>
+            <div style="font-size: clamp(0.8rem, 2vw, 1.2rem); font-weight: 700; color: #FFFFFF; text-align: center; margin-top: auto; padding-top: 1rem;">
+                Fonte: Google Trends
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        // Aguarda o carregamento completo do DOM para executar o script
+        document.addEventListener('DOMContentLoaded', () => {
+        
+            // =============================================
+            // =========      DADOS E CONSTANTES     =========
+            // =============================================
             const chartData = [
                 { Ano: 2016, 'Jogo da memória': 33, 'Sudoku': 35, 'Caça-palavras': 74, 'Palavras cruzadas': 60 },
                 { Ano: 2017, 'Jogo da memória': 30, 'Sudoku': 40, 'Caça-palavras': 74, 'Palavras cruzadas': 42 },
@@ -54,273 +105,256 @@
                 { Ano: 2025, 'Jogo da memória': 53, 'Sudoku': 53, 'Caça-palavras': 95, 'Palavras cruzadas': 91 },
             ];
 
-            const PALETTE = {
-                BLUE: '#4584f4',
-                GREEN: '#34D399',
-                RED: '#EF4444'
-            };
+            const PALETTE = { BLUE: '#4584f4', GREEN: '#34D399', RED: '#EF4444' };
             const AXIS_COLOR = '#FFFFFF';
-            const BACKGROUND_COLOR = '#0C0C2B';
-            const FONT_FAMILY = "'Montserrat', sans-serif";
-            const GOOGLE_LOGO_URL = 'https://public.flourish.studio/uploads/2246263/e793fc71-9a78-43b1-9477-b418ddd1a38a.png';
-
+            
             const quizImageUrls = {
                 'Jogo da Memória': 'https://i.postimg.cc/nr5GvDLM/unnamed.png',
                 'Sudoku': 'https://www.crossword-compiler.com/en/help/html/images/sudokupuzzle.png',
-                'Caça-palavras': 'https://www.pensarcursos.com.br/blog/wp-content/uploads/2024/08/Caca-Palavras-Divulgacao.jpg',
+                'Caça-palavras': 'https://img.freepik.com/vetores-gratis/modelo-de-jogo-de-caca-palavras-para-criancas_114360-1011.jpg', // URL CORRIGIDA
                 'Palavras cruzadas': 'https://screens.cdn.wordwall.net/400/54b5ba8f766a4345954d1964b008c7a9_0'
             };
-
+            
             const puzzleImageUrls = [
-                'https://i.postimg.cc/3yL5LZcs/01.png',
-                'https://i.postimg.cc/XBCRY6YW/02.png',
-                'https://i.postimg.cc/Q9HLvTLH/03.png',
-                'https://i.postimg.cc/tZw0b4yD/04.png',
-                'https://i.postimg.cc/CdnTNkH2/05.png',
-                'https://i.postimg.cc/zVmmPvxG/06.png',
-                'https://i.postimg.cc/TKGzfSM8/07.png',
-                'https://i.postimg.cc/0zfLQfPz/08.png',
-                'https://i.postimg.cc/zVnmmNQS/09.png'
+                'https://i.postimg.cc/3yL5LZcs/01.png', 'https://i.postimg.cc/XBCRY6YW/02.png', 'https://i.postimg.cc/Q9HLvTLH/03.png',
+                'https://i.postimg.cc/tZw0b4yD/04.png', 'https://i.postimg.cc/CdnTNkH2/05.png', 'https://i.postimg.cc/zVmmPvxG/06.png',
+                'https://i.postimg.cc/TKGzfSM8/07.png', 'https://i.postimg.cc/0zfLQfPz/08.png', 'https://i.postimg.cc/zVnmmNQS/09.png'
             ];
-
-            const CustomXAxisTick = ({ x, y, payload }) => {
-                if (!payload || payload.value === undefined) return null;
-                return (
-                    <g transform={`translate(${x},${y})`}>
-                        <text x={0} y={0} dy={20} textAnchor="middle" fill={AXIS_COLOR} style={{ fontSize: 'clamp(0.7rem, 1.5vw, 1.25rem)', fontFamily: FONT_FAMILY, fontWeight: 700 }}>
-                            {payload.value}
-                        </text>
-                    </g>
-                );
+            
+            // =============================================
+            // =========   CONTROLE DE VISUALIZAÇÃO  =========
+            // =============================================
+            const views = {
+                puzzle: document.getElementById('puzzle-view'),
+                quiz: document.getElementById('quiz-view'),
+                result: document.getElementById('result-view')
             };
 
-            const CustomYAxisTick = ({ x, y, payload }) => {
-                if (!payload || payload.value === undefined) return null;
-                return (
-                    <g transform={`translate(${x},${y})`}>
-                        <text x={0} y={0} dx={-10} textAnchor="end" dominantBaseline="middle" fill={AXIS_COLOR} style={{ fontSize: 'clamp(0.7rem, 1.5vw, 1.25rem)', fontFamily: FONT_FAMILY, fontWeight: 700 }}>
-                            {payload.value}
-                        </text>
-                    </g>
-                );
-            };
+            function switchView(viewName) {
+                Object.values(views).forEach(view => view.style.display = 'none');
+                views[viewName].style.display = 'flex';
+                views[viewName].classList.add('animate-fade-in');
+            }
+            
+            // =============================================
+            // =========      LÓGICA DO PUZZLE       =========
+            // =============================================
+            const puzzleContainer = document.getElementById('puzzle-container');
+            let puzzlePieces = [];
+            let dragItem = null;
+            let dragOverItem = null;
 
-            const HighlightedTitle = ({ title, highlightWords, colors, textColor }) => {
-                if (!title) return null;
-                const highlightMap = highlightWords.reduce((acc, word, index) => {
-                    if (word) acc[word.toLowerCase()] = colors[index % colors.length];
-                    return acc;
-                }, {});
-                const regex = new RegExp(`(${Object.keys(highlightMap).join('|')})`, 'gi');
-                return title.split(regex).map((part, i) => {
-                    const color = highlightMap[part.toLowerCase()];
-                    return color ? <span key={i} style={{ color }}>{part}</span> : <span key={i} style={{ color: textColor }}>{part}</span>;
+            function renderPuzzle() {
+                puzzleContainer.innerHTML = ''; // Limpa o container
+                puzzlePieces.forEach((src, index) => {
+                    const pieceDiv = document.createElement('div');
+                    pieceDiv.className = "w-full aspect-[16/9] cursor-grab active:cursor-grabbing transition-transform duration-300 ease-in-out transform hover:scale-105";
+                    pieceDiv.setAttribute('draggable', true);
+                    pieceDiv.dataset.index = index;
+                    
+                    pieceDiv.innerHTML = `<img src="${src}" alt="Peça do quebra-cabeça ${index + 1}" class="w-full h-full object-cover pointer-events-none rounded-sm" />`;
+                    
+                    pieceDiv.addEventListener('dragstart', (e) => { dragItem = index; });
+                    pieceDiv.addEventListener('dragenter', (e) => { e.preventDefault(); dragOverItem = index; });
+                    pieceDiv.addEventListener('dragover', (e) => e.preventDefault());
+                    pieceDiv.addEventListener('drop', handleDrop);
+                    
+                    puzzleContainer.appendChild(pieceDiv);
                 });
-            };
-
-            const PuzzleView = ({ onComplete }) => {
-                const [pieces, setPieces] = useState([]);
-                const dragItem = useRef();
-                const dragOverItem = useRef();
-
-                useEffect(() => {
-                    const solvedOrder = [...puzzleImageUrls];
-                    const initialPieces = [...solvedOrder];
-                    const indexA = 2;
-                    const indexB = 7;
-                    [initialPieces[indexA], initialPieces[indexB]] = [initialPieces[indexB], initialPieces[indexA]];
-                    setPieces(initialPieces);
-                }, []);
-
-                const handleDragStart = (e, position) => { dragItem.current = position; };
-                const handleDragEnter = (e, position) => { dragOverItem.current = position; };
-                const handleDrop = (e) => {
-                    const newPieces = [...pieces];
-                    const dragItemContent = newPieces[dragItem.current];
-                    newPieces.splice(dragItem.current, 1);
-                    newPieces.splice(dragOverItem.current, 0, dragItemContent);
-                    dragItem.current = null;
-                    dragOverItem.current = null;
-                    setPieces(newPieces);
-                };
-
-                return (
-                    <div className="w-full max-w-3xl mx-auto text-center animate-fade-in flex flex-col items-center justify-center">
-                        <div className="grid grid-cols-3 gap-1 mx-auto w-full">
-                            {pieces.map((src, index) => (
-                                <div
-                                    key={`${src}-${index}`}
-                                    className="w-full aspect-[16/9] cursor-grab active:cursor-grabbing transition-transform duration-300 ease-in-out transform hover:scale-105"
-                                    draggable
-                                    onDragStart={(e) => handleDragStart(e, index)}
-                                    onDragEnter={(e) => handleDragEnter(e, index)}
-                                    onDragEnd={handleDrop}
-                                    onDragOver={(e) => e.preventDefault()}
-                                >
-                                    <img src={src} alt={`Peça ${index + 1}`} className="w-full h-full object-cover pointer-events-none rounded-sm" />
-                                </div>
-                            ))}
-                        </div>
-                        <button
-                            onClick={onComplete}
-                            style={{ backgroundColor: PALETTE.GREEN }}
-                            className="mt-12 text-white font-semibold py-3 px-8 rounded-lg transition-all duration-300 shadow-lg hover:brightness-90"
-                        >
-                            Ir para o Quiz
-                        </button>
-                    </div>
-                );
-            };
-
-            const QuizView = ({ onAnswer }) => {
-                const options = ['Jogo da Memória', 'Sudoku', 'Caça-palavras', 'Palavras cruzadas'];
-                const correctAnswer = 'Caça-palavras';
-                const correctIndex = options.indexOf(correctAnswer);
-
-                const [blinkingIndex, setBlinkingIndex] = useState(0);
-                const [selection, setSelection] = useState(null);
-
-                useEffect(() => {
-                    if (selection) return;
-                    const interval = setInterval(() => {
-                        setBlinkingIndex(prev => (prev + 1) % options.length);
-                    }, 1000);
-                    return () => clearInterval(interval);
-                }, [selection, options.length]);
-
-                const handleAnswerClick = (option, index) => {
-                    if (selection) return;
-                    const isCorrect = option === correctAnswer;
-                    setSelection({ index, isCorrect });
-                    setTimeout(() => onAnswer(), 3000);
-                };
-
-                const getButtonColor = (index) => {
-                    if (selection) {
-                        if (selection.isCorrect) {
-                            return selection.index === index ? PALETTE.GREEN : PALETTE.BLUE;
-                        } else {
-                            if (selection.index === index) return PALETTE.RED;
-                            if (index === correctIndex) return PALETTE.GREEN;
-                            return PALETTE.BLUE;
-                        }
-                    }
-                    return blinkingIndex === index ? PALETTE.GREEN : PALETTE.BLUE;
-                };
-
-                return (
-                    <div className="w-full max-w-xl mx-auto text-center animate-fade-in">
-                        <h1 className="text-3xl md:text-5xl font-bold text-white mb-4 font-gotham-like">
-                            Qual o mais buscado?
-                        </h1>
-                        <p className="text-gray-300 mb-12 text-xl">
-                            Jogos para exercitar o cérebro selecionados, em 2025
-                        </p>
-                        <div className="flex flex-col items-center gap-5 w-full">
-                            {options.map((option, index) => (
-                                <button
-                                    key={option}
-                                    onClick={() => handleAnswerClick(option, index)}
-                                    style={{ backgroundColor: getButtonColor(index) }}
-                                    className="w-full max-w-md text-white font-semibold py-3 px-4 rounded-xl text-xl transform transition-all duration-300 shadow-lg flex items-center gap-4"
-                                    disabled={!!selection}
-                                >
-                                    <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 bg-white/20">
-                                        <img
-                                            src={quizImageUrls[option]}
-                                            alt={`Imagem de ${option}`}
-                                            className="w-full h-full object-cover"
-                                            onError={(e) => { e.target.onerror = null; e.target.src = `https://placehold.co/100x100/CCCCCC/FFFFFF?text=${option.substring(0,1)}`; }}
-                                        />
-                                    </div>
-                                    <span className="text-left flex-grow">{option}</span>
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                );
-            };
-
-            const ChartResultView = () => {
-                if (!window.Recharts) {
-                    return <div className="w-full h-screen flex items-center justify-center bg-[#1A1B29] text-white text-xl font-bold">Carregando gráfico...</div>;
-                }
-
-                const { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip } = window.Recharts;
-                const yAxisKeys = ['Jogo da memória', 'Sudoku', 'Caça-palavras', 'Palavras cruzadas'];
-                const chartColors = ['#4584f4', '#ff0055', '#f7c263', '#39ffd9'];
-                const filteredData = chartData.filter(d => d.Ano >= 2020);
-                const xTicks = filteredData.map(d => d.Ano);
-
-                return (
-                    <div className="w-full h-full max-h-[90vh] max-w-7xl flex items-center justify-center animate-fade-in p-4">
-                        <div style={{
-                            width: '100%',
-                            height: '100%',
-                            backgroundColor: BACKGROUND_COLOR,
-                            padding: 'clamp(1rem, 4vw, 60px) clamp(1rem, 4vw, 70px)',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            fontFamily: FONT_FAMILY,
-                            borderRadius: '1rem'
-                        }}>
-                            <div className="flex justify-between items-start gap-4">
-                                <div>
-                                    <h1 style={{ fontSize: 'clamp(1.5rem, 4vw, 3rem)', fontWeight: 700, lineHeight: '1.1', color: AXIS_COLOR }}>
-                                        <HighlightedTitle title="Caça-palavras lidera buscas" highlightWords={["Caça-palavras"]} colors={[chartColors[2]]} textColor={AXIS_COLOR} />
-                                    </h1>
-                                    <h2 style={{ fontSize: 'clamp(1rem, 2.5vw, 1.5rem)', fontWeight: 500, marginTop: '8px', color: AXIS_COLOR }}>Interesse de busca por jogos para o cérebro no Google</h2>
-                                </div>
-                                <img src={GOOGLE_LOGO_URL} alt="Google Logo" style={{ height: 'clamp(24px, 5vw, 48px)' }} onError={(e) => { e.target.style.display = 'none'; }} />
-                            </div>
-                            <hr className="my-6 border-t-2" style={{ borderColor: AXIS_COLOR }} />
-                            <div className="flex-grow">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <LineChart data={filteredData} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
-                                        <XAxis dataKey="Ano" type="number" domain={['dataMin', 'dataMax']} ticks={xTicks} tick={<CustomXAxisTick />} height={60} axisLine={{ stroke: AXIS_COLOR, strokeWidth: 2 }} tickLine={false} />
-                                        <YAxis type="number" domain={[0, 105]} ticks={[0, 50, 100]} tick={<CustomYAxisTick />} width={60} axisLine={{ stroke: AXIS_COLOR, strokeWidth: 2 }} tickLine={false} />
-                                        <Tooltip
-                                            contentStyle={{
-                                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                                                borderColor: '#555',
-                                                borderRadius: '8px',
-                                                fontFamily: FONT_FAMILY
-                                            }}
-                                            labelStyle={{ color: '#fff', fontWeight: 'bold' }}
-                                        />
-                                        {yAxisKeys.map((key, index) => (
-                                            <Line key={key} type="monotone" dataKey={key} stroke={chartColors[index]} strokeWidth={6} dot={false} activeDot={{ r: 8, strokeWidth: 2, stroke: '#fff' }} />
-                                        ))}
-                                    </LineChart>
-                                </ResponsiveContainer>
-                            </div>
-                            <div style={{ fontSize: 'clamp(0.8rem, 2vw, 1.2rem)', fontWeight: 700, color: AXIS_COLOR, textAlign: 'center', marginTop: 'auto', paddingTop: '1rem' }}>Fonte: Google Trends</div>
-                        </div>
-                    </div>
-                );
-            };
-
-            function App() {
-                const [view, setView] = useState('puzzle');
-
-                useEffect(() => {
-                    const allImageUrls = [...Object.values(quizImageUrls), ...puzzleImageUrls];
-                    allImageUrls.forEach(url => {
-                        const img = new Image();
-                        img.src = url;
-                    });
-                }, []);
-
-                return (
-                    <div className="h-screen w-screen bg-[#1A1B29] flex flex-col items-center justify-center font-sans text-white overflow-hidden">
-                        {view === 'puzzle' && <PuzzleView onComplete={() => setView('quiz')} />}
-                        {view === 'quiz' && <QuizView onAnswer={() => setView('result')} />}
-                        {view === 'result' && <ChartResultView />}
-                    </div>
-                );
             }
 
-            ReactDOM.render(<App />, document.getElementById('root'));
+            function handleDrop() {
+                const newPieces = [...puzzlePieces];
+                const dragItemContent = newPieces[dragItem];
+                newPieces.splice(dragItem, 1);
+                newPieces.splice(dragOverItem, 0, dragItemContent);
+                puzzlePieces = newPieces;
+                dragItem = null;
+                dragOverItem = null;
+                renderPuzzle(); // Re-renderiza as peças na nova ordem
+            }
+
+            function initializePuzzle() {
+                const initialPieces = [...puzzleImageUrls];
+                // Embaralha trocando apenas duas peças para simplificar
+                [initialPieces[2], initialPieces[7]] = [initialPieces[7], initialPieces[2]];
+                puzzlePieces = initialPieces;
+                renderPuzzle();
+                document.getElementById('go-to-quiz-btn').addEventListener('click', () => switchView('quiz'));
+            }
+
+            // =============================================
+            // =========       LÓGICA DO QUIZ        =========
+            // =============================================
+            const quizOptionsContainer = document.getElementById('quiz-options-container');
+            const quizOptions = ['Jogo da Memória', 'Sudoku', 'Caça-palavras', 'Palavras cruzadas'];
+            const correctAnswer = 'Caça-palavras';
+            let selection = null;
+            let blinkingInterval;
+
+            function renderQuizOptions() {
+                quizOptionsContainer.innerHTML = '';
+                quizOptions.forEach((option, index) => {
+                    const button = document.createElement('button');
+                    button.className = "w-full max-w-md text-white font-semibold py-3 px-4 rounded-xl text-xl transform transition-all duration-300 shadow-lg flex items-center gap-4";
+                    button.style.backgroundColor = PALETTE.BLUE;
+                    button.dataset.option = option;
+                    button.dataset.index = index;
+
+                    button.innerHTML = `
+                        <div class="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 bg-white/20">
+                            <img src="${quizImageUrls[option] || ''}" alt="Imagem de ${option}" class="w-full h-full object-cover">
+                        </div>
+                        <span class="text-left flex-grow">${option}</span>
+                    `;
+                    
+                    button.addEventListener('click', handleAnswerClick);
+                    quizOptionsContainer.appendChild(button);
+                });
+                startBlinking();
+            }
+
+            function handleAnswerClick(event) {
+                if (selection) return;
+                clearInterval(blinkingInterval);
+
+                const button = event.currentTarget;
+                const selectedOption = button.dataset.option;
+                const selectedIndex = parseInt(button.dataset.index);
+                const isCorrect = selectedOption === correctAnswer;
+                selection = { index: selectedIndex, isCorrect };
+
+                updateButtonColors();
+                
+                setTimeout(() => {
+                    switchView('result');
+                }, 3000);
+            }
+            
+            function updateButtonColors() {
+                const buttons = quizOptionsContainer.querySelectorAll('button');
+                const correctIndex = quizOptions.indexOf(correctAnswer);
+                
+                buttons.forEach((btn, index) => {
+                    btn.disabled = true;
+                    if (selection.isCorrect) {
+                        btn.style.backgroundColor = selection.index === index ? PALETTE.GREEN : PALETTE.BLUE;
+                    } else {
+                        if (selection.index === index) btn.style.backgroundColor = PALETTE.RED;
+                        else if (index === correctIndex) btn.style.backgroundColor = PALETTE.GREEN;
+                        else btn.style.backgroundColor = PALETTE.BLUE;
+                    }
+                });
+            }
+
+            function startBlinking() {
+                let blinkingIndex = 0;
+                blinkingInterval = setInterval(() => {
+                    const buttons = quizOptionsContainer.querySelectorAll('button');
+                    buttons.forEach((btn, i) => {
+                        btn.style.backgroundColor = i === blinkingIndex ? PALETTE.GREEN : PALETTE.BLUE;
+                    });
+                    blinkingIndex = (blinkingIndex + 1) % buttons.length;
+                }, 1000);
+            }
+
+            // =============================================
+            // =========     LÓGICA DO GRÁFICO       =========
+            // =============================================
+            function renderChart() {
+                const filteredData = chartData.filter(d => d.Ano >= 2020);
+                const labels = filteredData.map(d => d.Ano);
+                const chartKeys = ['Jogo da memória', 'Sudoku', 'Caça-palavras', 'Palavras cruzadas'];
+                const chartColors = ['#4584f4', '#ff0055', '#f7c263', '#39ffd9'];
+                
+                // Adapta os dados para o formato do Chart.js
+                const datasets = chartKeys.map((key, index) => ({
+                    label: key,
+                    data: filteredData.map(d => d[key]),
+                    borderColor: chartColors[index],
+                    backgroundColor: chartColors[index],
+                    tension: 0.4, // Equivalente ao 'monotone' do Recharts
+                    borderWidth: 6,
+                    pointRadius: 0,
+                    pointHoverRadius: 8,
+                    pointHoverBorderWidth: 2,
+                    pointHoverBackgroundColor: '#fff'
+                }));
+
+                // Atualiza o título com destaque
+                const titleElement = document.getElementById('chart-title');
+                titleElement.innerHTML = `<span style="color: ${chartColors[2]}">Caça-palavras</span> lidera buscas`;
+
+                // Renderiza o gráfico
+                const ctx = document.getElementById('trends-chart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: datasets
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                mode: 'index',
+                                intersect: false,
+                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                titleFont: { weight: 'bold' },
+                                bodyFont: { family: 'Montserrat' },
+                                cornerRadius: 8,
+                                padding: 10,
+                            }
+                        },
+                        scales: {
+                            x: {
+                                grid: { display: false },
+                                ticks: { 
+                                    color: AXIS_COLOR,
+                                    font: { size: 18, weight: 'bold' }
+                                },
+                                border: { color: AXIS_COLOR, width: 2 }
+                            },
+                            y: {
+                                min: 0,
+                                max: 105, // Ajustado para 105 para dar espaço para a linha
+                                grid: { display: false },
+                                ticks: {
+                                    color: AXIS_COLOR,
+                                    font: { size: 18, weight: 'bold' },
+                                    padding: 10,
+                                    stepSize: 50 // Define o intervalo das marcações para 50
+                                },
+                                border: { color: AXIS_COLOR, width: 2 }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // =============================================
+            // =========    INICIALIZAÇÃO GERAL    =========
+            // =============================================
+            function preloadImages() {
+                const allImageUrls = [...Object.values(quizImageUrls), ...puzzleImageUrls];
+                allImageUrls.forEach(url => {
+                    const img = new Image();
+                    img.src = url;
+                });
+            }
+
+            // Função principal que inicia tudo
+            function main() {
+                preloadImages();
+                initializePuzzle();
+                renderQuizOptions();
+                renderChart();
+                switchView('puzzle'); // Mostra a primeira tela
+            }
+
+            main();
         });
     </script>
 </body>
