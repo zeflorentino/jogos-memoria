@@ -296,6 +296,11 @@
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
+                        layout: {
+                            padding: {
+                                top: 10 // Adiciona espaço no topo para a linha não cortar
+                            }
+                        },
                         plugins: {
                             legend: { display: false },
                             tooltip: {
@@ -319,13 +324,19 @@
                             },
                             y: {
                                 min: 0,
-                                max: 105, // Ajustado para 105 para dar espaço para a linha
+                                max: 100, // Define o valor máximo do eixo como 100
                                 grid: { display: false },
                                 ticks: {
                                     color: AXIS_COLOR,
                                     font: { size: 18, weight: 'bold' },
                                     padding: 10,
-                                    stepSize: 50 // Define o intervalo das marcações para 50
+                                    stepSize: 50, // Garante que os passos sejam de 50 em 50
+                                    // Callback para garantir que apenas 0, 50, 100 sejam mostrados
+                                    callback: function(value) {
+                                        if (value === 0 || value === 50 || value === 100) {
+                                            return value;
+                                        }
+                                    }
                                 },
                                 border: { color: AXIS_COLOR, width: 2 }
                             }
