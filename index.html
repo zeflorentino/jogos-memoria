@@ -38,325 +38,290 @@
     <div id="root"></div>
 
     <script type="text/babel">
-        // --- React Application Code ---
-
-        const { useState, useEffect, useRef } = React;
-        // Removed the problematic destructuring of Recharts here.
-
-        // --- Dados do Gráfico (Extraídos do CSV) ---
-        const chartData = [
-            { Ano: 2016, 'Jogo da memória': 33, 'Sudoku': 35, 'Caça-palavras': 74, 'Palavras cruzadas': 60 },
-            { Ano: 2017, 'Jogo da memória': 30, 'Sudoku': 40, 'Caça-palavras': 74, 'Palavras cruzadas': 42 },
-            { Ano: 2018, 'Jogo da memória': 28, 'Sudoku': 44, 'Caça-palavras': 72, 'Palavras cruzadas': 70 },
-            { Ano: 2019, 'Jogo da memória': 28, 'Sudoku': 44, 'Caça-palavras': 70, 'Palavras cruzadas': 74 },
-            { Ano: 2020, 'Jogo da memória': 30, 'Sudoku': 49, 'Caça-palavras': 65, 'Palavras cruzadas': 70 },
-            { Ano: 2021, 'Jogo da memória': 28, 'Sudoku': 49, 'Caça-palavras': 63, 'Palavras cruzadas': 72 },
-            { Ano: 2022, 'Jogo da memória': 42, 'Sudoku': 49, 'Caça-palavras': 88, 'Palavras cruzadas': 86 },
-            { Ano: 2023, 'Jogo da memória': 47, 'Sudoku': 60, 'Caça-palavras': 91, 'Palavras cruzadas': 86 },
-            { Ano: 2024, 'Jogo da memória': 47, 'Sudoku': 53, 'Caça-palavras': 100, 'Palavras cruzadas': 86 },
-            { Ano: 2025, 'Jogo da memória': 53, 'Sudoku': 53, 'Caça-palavras': 95, 'Palavras cruzadas': 91 },
-        ];
-
-        // --- Constantes de Estilo e Imagens ---
-        const PALETTE = {
-            BLUE: '#4584f4',
-            GREEN: '#34D399',
-            RED: '#EF4444'
-        };
-        const AXIS_COLOR = '#FFFFFF';
-        const BACKGROUND_COLOR = '#0C0C2B';
-        const FONT_FAMILY = "'Montserrat', sans-serif";
-        const GOOGLE_LOGO_URL = 'https://public.flourish.studio/uploads/2246263/e793fc71-9a78-43b1-9477-b418ddd1a38a.png';
-
-        const quizImageUrls = {
-            'Jogo da Memória': 'https://i.postimg.cc/nr5GvDLM/unnamed.png',
-            'Sudoku': 'https://www.crossword-compiler.com/en/help/html/images/sudokupuzzle.png',
-            'Caça-palavras': 'https://www.pensarcursos.com.br/blog/wp-content/uploads/2024/08/Caca-Palavras-Divulgacao.jpg',
-            'Palavras cruzadas': 'https://screens.cdn.wordwall.net/400/54b5ba8f766a4345954d1964b008c7a9_0'
-        };
-
-        const puzzleImageUrls = [
-            'https://i.postimg.cc/3yL5LZcs/01.png',
-            'https://i.postimg.cc/XBCRY6YW/02.png',
-            'https://i.postimg.cc/Q9HLvTLH/03.png',
-            'https://i.postimg.cc/tZw0b4yD/04.png',
-            'https://i.postimg.cc/CdnTNkH2/05.png',
-            'https://i.postimg.cc/zVmmPvxG/06.png',
-            'https://i.postimg.cc/TKGzfSM8/07.png',
-            'https://i.postimg.cc/0zfLQfPz/08.png',
-            'https://i.postimg.cc/zVnmmNQS/09.png'
-        ];
-
-
-        // --- Componentes Auxiliares de Gráfico ---
-        const CustomXAxisTick = ({ x, y, payload }) => {
-            if (!payload || payload.value === undefined) return null;
-            return (
-                <g transform={`translate(${x},${y})`}>
-                    <text x={0} y={0} dy={20} textAnchor="middle" fill={AXIS_COLOR} style={{ fontSize: 'clamp(0.7rem, 1.5vw, 1.25rem)', fontFamily: FONT_FAMILY, fontWeight: 700 }}>
-                        {payload.value}
-                    </text>
-                </g>
-            );
-        };
-
-        const CustomYAxisTick = ({ x, y, payload }) => {
-            if (!payload || payload.value === undefined) return null;
-            return (
-                <g transform={`translate(${x},${y})`}>
-                    <text x={0} y={0} dx={-10} textAnchor="end" dominantBaseline="middle" fill={AXIS_COLOR} style={{ fontSize: 'clamp(0.7rem, 1.5vw, 1.25rem)', fontFamily: FONT_FAMILY, fontWeight: 700 }}>
-                        {payload.value}
-                    </text>
-                </g>
-            );
-        };
-
-        const HighlightedTitle = ({ title, highlightWords, colors, textColor }) => {
-            if (!title) return null;
-            const highlightMap = highlightWords.reduce((acc, word, index) => {
-                if (word) acc[word.toLowerCase()] = colors[index % colors.length];
-                return acc;
-            }, {});
-            const regex = new RegExp(`(${Object.keys(highlightMap).join('|')})`, 'gi');
-            return title.split(regex).map((part, i) => {
-                const color = highlightMap[part.toLowerCase()];
-                return color ? <span key={i} style={{ color }}>{part}</span> : <span key={i} style={{ color: textColor }}>{part}</span>;
-            });
-        };
-
-        // --- Componentes da Aplicação ---
-
-        const PuzzleView = ({ onComplete }) => {
-            const [pieces, setPieces] = useState([]);
-            const dragItem = useRef();
-            const dragOverItem = useRef();
-
-            useEffect(() => {
-                const solvedOrder = [...puzzleImageUrls];
-                const initialPieces = [...solvedOrder];
-                const indexA = 2;
-                const indexB = 7;
-                [initialPieces[indexA], initialPieces[indexB]] = [initialPieces[indexB], initialPieces[indexA]];
-                setPieces(initialPieces);
-            }, []);
-
-            const handleDragStart = (e, position) => {
-                dragItem.current = position;
-            };
-
-            const handleDragEnter = (e, position) => {
-                dragOverItem.current = position;
-            };
-
-            const handleDrop = (e) => {
-                const newPieces = [...pieces];
-                const dragItemContent = newPieces[dragItem.current];
-                newPieces.splice(dragItem.current, 1);
-                newPieces.splice(dragOverItem.current, 0, dragItemContent);
-                dragItem.current = null;
-                dragOverItem.current = null;
-                setPieces(newPieces);
-            };
-
-            return (
-                <div className="w-full max-w-3xl mx-auto text-center animate-fade-in flex flex-col items-center justify-center">
-                    <div className="grid grid-cols-3 gap-1 mx-auto w-full">
-                        {pieces.map((src, index) => (
-                            <div
-                                key={`${src}-${index}`}
-                                className="w-full aspect-[16/9] cursor-grab active:cursor-grabbing transition-transform duration-300 ease-in-out transform hover:scale-105"
-                                draggable
-                                onDragStart={(e) => handleDragStart(e, index)}
-                                onDragEnter={(e) => handleDragEnter(e, index)}
-                                onDragEnd={handleDrop}
-                                onDragOver={(e) => e.preventDefault()}
-                            >
-                                <img src={src} alt={`Peça do quebra-cabeça ${index + 1}`} className="w-full h-full object-cover pointer-events-none rounded-sm" />
-                            </div>
-                        ))}
-                    </div>
-                    <button
-                        onClick={onComplete}
-                        style={{ backgroundColor: PALETTE.GREEN }}
-                        className="mt-12 text-white font-semibold py-3 px-8 rounded-lg transition-all duration-300 shadow-lg hover:brightness-90"
-                    >
-                        Ir para o Quiz
-                    </button>
-                </div>
-            );
-        };
-
-
-        const QuizView = ({ onAnswer }) => {
-            const options = ['Jogo da Memória', 'Sudoku', 'Caça-palavras', 'Palavras cruzadas'];
-            const correctAnswer = 'Caça-palavras';
-            const correctIndex = options.indexOf(correctAnswer);
-
-            const [blinkingIndex, setBlinkingIndex] = useState(0);
-            const [selection, setSelection] = useState(null);
-
-            useEffect(() => {
-                if (selection) return;
-                const interval = setInterval(() => {
-                    setBlinkingIndex(prev => (prev + 1) % options.length);
-                }, 1000);
-                return () => clearInterval(interval);
-            }, [selection, options.length]);
-
-            const handleAnswerClick = (option, index) => {
-                if (selection) return;
-
-                const isCorrect = option === correctAnswer;
-                setSelection({ index, isCorrect });
-
-                setTimeout(() => {
-                    onAnswer();
-                }, 3000);
-            };
-
-            const getButtonColor = (index) => {
-                if (selection) {
-                    if (selection.isCorrect) {
-                        return selection.index === index ? PALETTE.GREEN : PALETTE.BLUE;
-                    } else {
-                        if (selection.index === index) return PALETTE.RED;
-                        if (index === correctIndex) return PALETTE.GREEN;
-                        return PALETTE.BLUE;
-                    }
-                }
-                return blinkingIndex === index ? PALETTE.GREEN : PALETTE.BLUE;
-            };
-
-            return (
-                <div className="w-full max-w-xl mx-auto text-center animate-fade-in">
-                    <h1 className="text-3xl md:text-5xl font-bold text-white mb-4 font-gotham-like">
-                        Qual o mais buscado?
-                    </h1>
-                    <p className="text-gray-300 mb-12 text-xl">
-                        Jogos para exercitar o cérebro selecionados, em 2025
-                    </p>
-                    <div className="flex flex-col items-center gap-5 w-full">
-                        {options.map((option, index) => (
-                            <button
-                                key={option}
-                                onClick={() => handleAnswerClick(option, index)}
-                                style={{ backgroundColor: getButtonColor(index) }}
-                                className="w-full max-w-md text-white font-semibold py-3 px-4 rounded-xl text-xl transform transition-all duration-300 shadow-lg flex items-center gap-4"
-                                disabled={!!selection}
-                            >
-                                <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 bg-white/20">
-                                    <img
-                                        src={quizImageUrls[option]}
-                                        alt={`Imagem de ${option}`}
-                                        className="w-full h-full object-cover"
-                                        onError={(e) => { e.target.onerror = null; e.target.src = `https://placehold.co/100x100/CCCCCC/FFFFFF?text=${option.substring(0,1)}`; }}
-                                    />
-                                </div>
-                                <span className="text-left flex-grow">{option}</span>
-                            </button>
-                        ))}
-                    </div>
-                </div>
-            );
-        };
-
-        const ChartResultView = () => {
-            const yAxisKeys = ['Jogo da memória', 'Sudoku', 'Caça-palavras', 'Palavras cruzadas'];
-            const chartColors = ['#4584f4', '#ff0055', '#f7c263', '#39ffd9'];
+        window.addEventListener('load', () => {
+            const { useState, useEffect, useRef } = React;
             
-            const filteredData = chartData.filter(d => d.Ano >= 2020);
-            const xTicks = filteredData.map(d => d.Ano);
+            const chartData = [
+                { Ano: 2016, 'Jogo da memória': 33, 'Sudoku': 35, 'Caça-palavras': 74, 'Palavras cruzadas': 60 },
+                { Ano: 2017, 'Jogo da memória': 30, 'Sudoku': 40, 'Caça-palavras': 74, 'Palavras cruzadas': 42 },
+                { Ano: 2018, 'Jogo da memória': 28, 'Sudoku': 44, 'Caça-palavras': 72, 'Palavras cruzadas': 70 },
+                { Ano: 2019, 'Jogo da memória': 28, 'Sudoku': 44, 'Caça-palavras': 70, 'Palavras cruzadas': 74 },
+                { Ano: 2020, 'Jogo da memória': 30, 'Sudoku': 49, 'Caça-palavras': 65, 'Palavras cruzadas': 70 },
+                { Ano: 2021, 'Jogo da memória': 28, 'Sudoku': 49, 'Caça-palavras': 63, 'Palavras cruzadas': 72 },
+                { Ano: 2022, 'Jogo da memória': 42, 'Sudoku': 49, 'Caça-palavras': 88, 'Palavras cruzadas': 86 },
+                { Ano: 2023, 'Jogo da memória': 47, 'Sudoku': 60, 'Caça-palavras': 91, 'Palavras cruzadas': 86 },
+                { Ano: 2024, 'Jogo da memória': 47, 'Sudoku': 53, 'Caça-palavras': 100, 'Palavras cruzadas': 86 },
+                { Ano: 2025, 'Jogo da memória': 53, 'Sudoku': 53, 'Caça-palavras': 95, 'Palavras cruzadas': 91 },
+            ];
 
-            return (
-                <div className="w-full h-full max-h-[90vh] max-w-7xl flex items-center justify-center animate-fade-in p-4">
-                    <div style={{
-                        width: '100%',
-                        height: '100%',
-                        backgroundColor: BACKGROUND_COLOR,
-                        padding: 'clamp(1rem, 4vw, 60px) clamp(1rem, 4vw, 70px)',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        fontFamily: FONT_FAMILY,
-                        borderRadius: '1rem'
-                    }}>
-                        <div className="flex justify-between items-start gap-4">
-                             <div>
-                                <h1 style={{ fontSize: 'clamp(1.5rem, 4vw, 3rem)', fontWeight: 700, lineHeight: '1.1', color: AXIS_COLOR }}>
-                                    <HighlightedTitle title="Caça-palavras lidera buscas" highlightWords={["Caça-palavras"]} colors={[chartColors[2]]} textColor={AXIS_COLOR} />
-                                </h1>
-                                <h2 style={{ fontSize: 'clamp(1rem, 2.5vw, 1.5rem)', fontWeight: 500, marginTop: '8px', color: AXIS_COLOR }}>Interesse de busca por jogos para o cérebro no Google</h2>
-                            </div>
-                            <img src={GOOGLE_LOGO_URL} alt="Google Logo" style={{ height: 'clamp(24px, 5vw, 48px)' }} onError={(e) => { e.target.style.display = 'none'; }} />
-                        </div>
-                        <hr className="my-6 border-t-2" style={{ borderColor: AXIS_COLOR }} />
-                        <div className="flex-grow">
-                            <Recharts.ResponsiveContainer width="100%" height="100%">
-                                <Recharts.LineChart data={filteredData} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
-                                    <Recharts.XAxis dataKey="Ano" type="number" domain={['dataMin', 'dataMax']} ticks={xTicks} tick={<CustomXAxisTick />} height={60} axisLine={{ stroke: AXIS_COLOR, strokeWidth: 2 }} tickLine={false} />
-                                    <Recharts.YAxis type="number" domain={[0, 105]} ticks={[0, 50, 100]} tick={<CustomYAxisTick />} width={60} axisLine={{ stroke: AXIS_COLOR, strokeWidth: 2 }} tickLine={false} />
-                                    <Recharts.Tooltip
-                                        contentStyle={{
-                                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                                            borderColor: '#555',
-                                            borderRadius: '8px',
-                                            fontFamily: FONT_FAMILY
-                                        }}
-                                        labelStyle={{ color: '#fff', fontWeight: 'bold' }}
-                                    />
-                                    {yAxisKeys.map((key, index) => (
-                                        <Recharts.Line key={key} type="monotone" dataKey={key} stroke={chartColors[index]} strokeWidth={6} dot={false} activeDot={{ r: 8, strokeWidth: 2, stroke: '#fff' }} />
-                                    ))}
-                                </Recharts.LineChart>
-                            </Recharts.ResponsiveContainer>
-                        </div>
-                         <div style={{ fontSize: 'clamp(0.8rem, 2vw, 1.2rem)', fontWeight: 700, color: AXIS_COLOR, textAlign: 'center', marginTop: 'auto', paddingTop: '1rem' }}>Fonte: Google Trends</div>
-                    </div>
-                </div>
-            );
-        };
+            const PALETTE = {
+                BLUE: '#4584f4',
+                GREEN: '#34D399',
+                RED: '#EF4444'
+            };
+            const AXIS_COLOR = '#FFFFFF';
+            const BACKGROUND_COLOR = '#0C0C2B';
+            const FONT_FAMILY = "'Montserrat', sans-serif";
+            const GOOGLE_LOGO_URL = 'https://public.flourish.studio/uploads/2246263/e793fc71-9a78-43b1-9477-b418ddd1a38a.png';
 
+            const quizImageUrls = {
+                'Jogo da Memória': 'https://i.postimg.cc/nr5GvDLM/unnamed.png',
+                'Sudoku': 'https://www.crossword-compiler.com/en/help/html/images/sudokupuzzle.png',
+                'Caça-palavras': 'https://www.pensarcursos.com.br/blog/wp-content/uploads/2024/08/Caca-Palavras-Divulgacao.jpg',
+                'Palavras cruzadas': 'https://screens.cdn.wordwall.net/400/54b5ba8f766a4345954d1964b008c7a9_0'
+            };
 
-        function App() {
-            const [view, setView] = useState('puzzle'); // puzzle -> quiz -> result
+            const puzzleImageUrls = [
+                'https://i.postimg.cc/3yL5LZcs/01.png',
+                'https://i.postimg.cc/XBCRY6YW/02.png',
+                'https://i.postimg.cc/Q9HLvTLH/03.png',
+                'https://i.postimg.cc/tZw0b4yD/04.png',
+                'https://i.postimg.cc/CdnTNkH2/05.png',
+                'https://i.postimg.cc/zVmmPvxG/06.png',
+                'https://i.postimg.cc/TKGzfSM8/07.png',
+                'https://i.postimg.cc/0zfLQfPz/08.png',
+                'https://i.postimg.cc/zVnmmNQS/09.png'
+            ];
 
-            useEffect(() => {
-                const allImageUrls = [...Object.values(quizImageUrls), ...puzzleImageUrls];
-                allImageUrls.forEach(url => {
-                    const img = new Image();
-                    img.src = url;
+            const CustomXAxisTick = ({ x, y, payload }) => {
+                if (!payload || payload.value === undefined) return null;
+                return (
+                    <g transform={`translate(${x},${y})`}>
+                        <text x={0} y={0} dy={20} textAnchor="middle" fill={AXIS_COLOR} style={{ fontSize: 'clamp(0.7rem, 1.5vw, 1.25rem)', fontFamily: FONT_FAMILY, fontWeight: 700 }}>
+                            {payload.value}
+                        </text>
+                    </g>
+                );
+            };
+
+            const CustomYAxisTick = ({ x, y, payload }) => {
+                if (!payload || payload.value === undefined) return null;
+                return (
+                    <g transform={`translate(${x},${y})`}>
+                        <text x={0} y={0} dx={-10} textAnchor="end" dominantBaseline="middle" fill={AXIS_COLOR} style={{ fontSize: 'clamp(0.7rem, 1.5vw, 1.25rem)', fontFamily: FONT_FAMILY, fontWeight: 700 }}>
+                            {payload.value}
+                        </text>
+                    </g>
+                );
+            };
+
+            const HighlightedTitle = ({ title, highlightWords, colors, textColor }) => {
+                if (!title) return null;
+                const highlightMap = highlightWords.reduce((acc, word, index) => {
+                    if (word) acc[word.toLowerCase()] = colors[index % colors.length];
+                    return acc;
+                }, {});
+                const regex = new RegExp(`(${Object.keys(highlightMap).join('|')})`, 'gi');
+                return title.split(regex).map((part, i) => {
+                    const color = highlightMap[part.toLowerCase()];
+                    return color ? <span key={i} style={{ color }}>{part}</span> : <span key={i} style={{ color: textColor }}>{part}</span>;
                 });
-            }, []);
-
-            const handleCompletePuzzle = () => {
-                setView('quiz');
             };
 
-            const handleAnswer = () => {
-                setView('result');
+            const PuzzleView = ({ onComplete }) => {
+                const [pieces, setPieces] = useState([]);
+                const dragItem = useRef();
+                const dragOverItem = useRef();
+
+                useEffect(() => {
+                    const solvedOrder = [...puzzleImageUrls];
+                    const initialPieces = [...solvedOrder];
+                    const indexA = 2;
+                    const indexB = 7;
+                    [initialPieces[indexA], initialPieces[indexB]] = [initialPieces[indexB], initialPieces[indexA]];
+                    setPieces(initialPieces);
+                }, []);
+
+                const handleDragStart = (e, position) => { dragItem.current = position; };
+                const handleDragEnter = (e, position) => { dragOverItem.current = position; };
+                const handleDrop = (e) => {
+                    const newPieces = [...pieces];
+                    const dragItemContent = newPieces[dragItem.current];
+                    newPieces.splice(dragItem.current, 1);
+                    newPieces.splice(dragOverItem.current, 0, dragItemContent);
+                    dragItem.current = null;
+                    dragOverItem.current = null;
+                    setPieces(newPieces);
+                };
+
+                return (
+                    <div className="w-full max-w-3xl mx-auto text-center animate-fade-in flex flex-col items-center justify-center">
+                        <div className="grid grid-cols-3 gap-1 mx-auto w-full">
+                            {pieces.map((src, index) => (
+                                <div
+                                    key={`${src}-${index}`}
+                                    className="w-full aspect-[16/9] cursor-grab active:cursor-grabbing transition-transform duration-300 ease-in-out transform hover:scale-105"
+                                    draggable
+                                    onDragStart={(e) => handleDragStart(e, index)}
+                                    onDragEnter={(e) => handleDragEnter(e, index)}
+                                    onDragEnd={handleDrop}
+                                    onDragOver={(e) => e.preventDefault()}
+                                >
+                                    <img src={src} alt={`Peça ${index + 1}`} className="w-full h-full object-cover pointer-events-none rounded-sm" />
+                                </div>
+                            ))}
+                        </div>
+                        <button
+                            onClick={onComplete}
+                            style={{ backgroundColor: PALETTE.GREEN }}
+                            className="mt-12 text-white font-semibold py-3 px-8 rounded-lg transition-all duration-300 shadow-lg hover:brightness-90"
+                        >
+                            Ir para o Quiz
+                        </button>
+                    </div>
+                );
             };
 
-            const renderView = () => {
-                switch (view) {
-                    case 'puzzle':
-                        return <PuzzleView onComplete={handleCompletePuzzle} />;
-                    case 'quiz':
-                        return <QuizView onAnswer={handleAnswer} />;
-                    case 'result':
-                        return <ChartResultView />;
-                    default:
-                        return <PuzzleView onComplete={handleCompletePuzzle} />;
+            const QuizView = ({ onAnswer }) => {
+                const options = ['Jogo da Memória', 'Sudoku', 'Caça-palavras', 'Palavras cruzadas'];
+                const correctAnswer = 'Caça-palavras';
+                const correctIndex = options.indexOf(correctAnswer);
+
+                const [blinkingIndex, setBlinkingIndex] = useState(0);
+                const [selection, setSelection] = useState(null);
+
+                useEffect(() => {
+                    if (selection) return;
+                    const interval = setInterval(() => {
+                        setBlinkingIndex(prev => (prev + 1) % options.length);
+                    }, 1000);
+                    return () => clearInterval(interval);
+                }, [selection, options.length]);
+
+                const handleAnswerClick = (option, index) => {
+                    if (selection) return;
+                    const isCorrect = option === correctAnswer;
+                    setSelection({ index, isCorrect });
+                    setTimeout(() => onAnswer(), 3000);
+                };
+
+                const getButtonColor = (index) => {
+                    if (selection) {
+                        if (selection.isCorrect) {
+                            return selection.index === index ? PALETTE.GREEN : PALETTE.BLUE;
+                        } else {
+                            if (selection.index === index) return PALETTE.RED;
+                            if (index === correctIndex) return PALETTE.GREEN;
+                            return PALETTE.BLUE;
+                        }
+                    }
+                    return blinkingIndex === index ? PALETTE.GREEN : PALETTE.BLUE;
+                };
+
+                return (
+                    <div className="w-full max-w-xl mx-auto text-center animate-fade-in">
+                        <h1 className="text-3xl md:text-5xl font-bold text-white mb-4 font-gotham-like">
+                            Qual o mais buscado?
+                        </h1>
+                        <p className="text-gray-300 mb-12 text-xl">
+                            Jogos para exercitar o cérebro selecionados, em 2025
+                        </p>
+                        <div className="flex flex-col items-center gap-5 w-full">
+                            {options.map((option, index) => (
+                                <button
+                                    key={option}
+                                    onClick={() => handleAnswerClick(option, index)}
+                                    style={{ backgroundColor: getButtonColor(index) }}
+                                    className="w-full max-w-md text-white font-semibold py-3 px-4 rounded-xl text-xl transform transition-all duration-300 shadow-lg flex items-center gap-4"
+                                    disabled={!!selection}
+                                >
+                                    <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 bg-white/20">
+                                        <img
+                                            src={quizImageUrls[option]}
+                                            alt={`Imagem de ${option}`}
+                                            className="w-full h-full object-cover"
+                                            onError={(e) => { e.target.onerror = null; e.target.src = `https://placehold.co/100x100/CCCCCC/FFFFFF?text=${option.substring(0,1)}`; }}
+                                        />
+                                    </div>
+                                    <span className="text-left flex-grow">{option}</span>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                );
+            };
+
+            const ChartResultView = () => {
+                if (!window.Recharts) {
+                    return <div className="w-full h-screen flex items-center justify-center bg-[#1A1B29] text-white text-xl font-bold">Carregando gráfico...</div>;
                 }
+
+                const { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip } = window.Recharts;
+                const yAxisKeys = ['Jogo da memória', 'Sudoku', 'Caça-palavras', 'Palavras cruzadas'];
+                const chartColors = ['#4584f4', '#ff0055', '#f7c263', '#39ffd9'];
+                const filteredData = chartData.filter(d => d.Ano >= 2020);
+                const xTicks = filteredData.map(d => d.Ano);
+
+                return (
+                    <div className="w-full h-full max-h-[90vh] max-w-7xl flex items-center justify-center animate-fade-in p-4">
+                        <div style={{
+                            width: '100%',
+                            height: '100%',
+                            backgroundColor: BACKGROUND_COLOR,
+                            padding: 'clamp(1rem, 4vw, 60px) clamp(1rem, 4vw, 70px)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            fontFamily: FONT_FAMILY,
+                            borderRadius: '1rem'
+                        }}>
+                            <div className="flex justify-between items-start gap-4">
+                                <div>
+                                    <h1 style={{ fontSize: 'clamp(1.5rem, 4vw, 3rem)', fontWeight: 700, lineHeight: '1.1', color: AXIS_COLOR }}>
+                                        <HighlightedTitle title="Caça-palavras lidera buscas" highlightWords={["Caça-palavras"]} colors={[chartColors[2]]} textColor={AXIS_COLOR} />
+                                    </h1>
+                                    <h2 style={{ fontSize: 'clamp(1rem, 2.5vw, 1.5rem)', fontWeight: 500, marginTop: '8px', color: AXIS_COLOR }}>Interesse de busca por jogos para o cérebro no Google</h2>
+                                </div>
+                                <img src={GOOGLE_LOGO_URL} alt="Google Logo" style={{ height: 'clamp(24px, 5vw, 48px)' }} onError={(e) => { e.target.style.display = 'none'; }} />
+                            </div>
+                            <hr className="my-6 border-t-2" style={{ borderColor: AXIS_COLOR }} />
+                            <div className="flex-grow">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <LineChart data={filteredData} margin={{ top: 5, right: 30, left: 10, bottom: 5 }}>
+                                        <XAxis dataKey="Ano" type="number" domain={['dataMin', 'dataMax']} ticks={xTicks} tick={<CustomXAxisTick />} height={60} axisLine={{ stroke: AXIS_COLOR, strokeWidth: 2 }} tickLine={false} />
+                                        <YAxis type="number" domain={[0, 105]} ticks={[0, 50, 100]} tick={<CustomYAxisTick />} width={60} axisLine={{ stroke: AXIS_COLOR, strokeWidth: 2 }} tickLine={false} />
+                                        <Tooltip
+                                            contentStyle={{
+                                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                                borderColor: '#555',
+                                                borderRadius: '8px',
+                                                fontFamily: FONT_FAMILY
+                                            }}
+                                            labelStyle={{ color: '#fff', fontWeight: 'bold' }}
+                                        />
+                                        {yAxisKeys.map((key, index) => (
+                                            <Line key={key} type="monotone" dataKey={key} stroke={chartColors[index]} strokeWidth={6} dot={false} activeDot={{ r: 8, strokeWidth: 2, stroke: '#fff' }} />
+                                        ))}
+                                    </LineChart>
+                                </ResponsiveContainer>
+                            </div>
+                            <div style={{ fontSize: 'clamp(0.8rem, 2vw, 1.2rem)', fontWeight: 700, color: AXIS_COLOR, textAlign: 'center', marginTop: 'auto', paddingTop: '1rem' }}>Fonte: Google Trends</div>
+                        </div>
+                    </div>
+                );
+            };
+
+            function App() {
+                const [view, setView] = useState('puzzle');
+
+                useEffect(() => {
+                    const allImageUrls = [...Object.values(quizImageUrls), ...puzzleImageUrls];
+                    allImageUrls.forEach(url => {
+                        const img = new Image();
+                        img.src = url;
+                    });
+                }, []);
+
+                return (
+                    <div className="h-screen w-screen bg-[#1A1B29] flex flex-col items-center justify-center font-sans text-white overflow-hidden">
+                        {view === 'puzzle' && <PuzzleView onComplete={() => setView('quiz')} />}
+                        {view === 'quiz' && <QuizView onAnswer={() => setView('result')} />}
+                        {view === 'result' && <ChartResultView />}
+                    </div>
+                );
             }
 
-            return (
-                <div className="h-screen w-screen bg-[#1A1B29] flex flex-col items-center justify-center font-sans text-white overflow-hidden">
-                    {renderView()}
-                </div>
-            );
-        }
-
-        ReactDOM.render(<App />, document.getElementById('root'));
-
+            ReactDOM.render(<App />, document.getElementById('root'));
+        });
     </script>
 </body>
 </html>
