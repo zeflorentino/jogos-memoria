@@ -110,7 +110,7 @@
             
             const quizImageUrls = {
                 'Jogo da Memória': 'https://i.postimg.cc/nr5GvDLM/unnamed.png',
-                'Sudoku': 'https://i.postimg.cc/9MKfZvSP/sudokupuzzle.png',
+                'Sudoku': 'https://www.crossword-compiler.com/en/help/html/images/sudokupuzzle.png',
                 'Caça-palavras': 'https://i.postimg.cc/MG1f6ZFk/caca-palavras.webp', // URL CORRIGIDA
                 'Palavras cruzadas': 'https://screens.cdn.wordwall.net/400/54b5ba8f766a4345954d1964b008c7a9_0'
             };
@@ -141,37 +141,52 @@
             // =============================================
             const puzzleContainer = document.getElementById('puzzle-container');
             let puzzlePieces = [];
-            let dragItem = null;
-            let dragOverItem = null;
+            let selectedPieceIndex = null; // To store the index of the selected piece
+
+            function handlePieceClick(event) {
+                const clickedIndex = parseInt(event.currentTarget.dataset.index);
+
+                if (selectedPieceIndex === null) {
+                    // First piece selected
+                    selectedPieceIndex = clickedIndex;
+                } else if (selectedPieceIndex === clickedIndex) {
+                    // The same piece was clicked again, so deselect it
+                    selectedPieceIndex = null;
+                } else {
+                    // A different piece was clicked, so swap them
+                    // Using array destructuring for a concise swap
+                    [puzzlePieces[selectedPieceIndex], puzzlePieces[clickedIndex]] = 
+                        [puzzlePieces[clickedIndex], puzzlePieces[selectedPieceIndex]];
+                    
+                    // Reset selection after swap
+                    selectedPieceIndex = null;
+                }
+                
+                // Re-render the puzzle to show the updated state (selection or swap)
+                renderPuzzle();
+            }
 
             function renderPuzzle() {
                 puzzleContainer.innerHTML = ''; // Limpa o container
                 puzzlePieces.forEach((src, index) => {
                     const pieceDiv = document.createElement('div');
-                    pieceDiv.className = "w-full aspect-[16/9] cursor-grab active:cursor-grabbing transition-transform duration-300 ease-in-out transform hover:scale-105";
-                    pieceDiv.setAttribute('draggable', true);
+                    // Changed cursor to pointer, removed draggable attributes
+                    pieceDiv.className = "w-full aspect-[16/9] cursor-pointer transition-all duration-300 ease-in-out transform hover:scale-105";
+                    
+                    // Add a visual indicator if this piece is selected
+                    if (index === selectedPieceIndex) {
+                        pieceDiv.classList.add('ring-4', 'ring-green-400', 'scale-95');
+                    }
+
                     pieceDiv.dataset.index = index;
                     
                     pieceDiv.innerHTML = `<img src="${src}" alt="Peça do quebra-cabeça ${index + 1}" class="w-full h-full object-cover pointer-events-none rounded-sm" />`;
                     
-                    pieceDiv.addEventListener('dragstart', (e) => { dragItem = index; });
-                    pieceDiv.addEventListener('dragenter', (e) => { e.preventDefault(); dragOverItem = index; });
-                    pieceDiv.addEventListener('dragover', (e) => e.preventDefault());
-                    pieceDiv.addEventListener('drop', handleDrop);
+                    // Add the new click handler
+                    pieceDiv.addEventListener('click', handlePieceClick);
                     
                     puzzleContainer.appendChild(pieceDiv);
                 });
-            }
-
-            function handleDrop() {
-                const newPieces = [...puzzlePieces];
-                const dragItemContent = newPieces[dragItem];
-                newPieces.splice(dragItem, 1);
-                newPieces.splice(dragOverItem, 0, dragItemContent);
-                puzzlePieces = newPieces;
-                dragItem = null;
-                dragOverItem = null;
-                renderPuzzle(); // Re-renderiza as peças na nova ordem
             }
 
             function initializePuzzle() {
